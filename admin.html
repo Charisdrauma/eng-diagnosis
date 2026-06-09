@@ -3,13 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>诊断数据管理后台</title>
+<title>诊断管理后台</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;background:#F0F2F5;color:#333}
 .c{max-width:900px;margin:0 auto;padding:20px}
 h1{font-size:22px;color:#2D59A8}
 .sub{font-size:13px;color:#999;margin-bottom:16px}
+.setup{background:#FFF8E1;padding:16px;border-radius:8px;margin-bottom:16px;font-size:13px;line-height:1.8}
+.setup b{color:#E65100}
 .actions{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap}
 .actions button{padding:10px 20px;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer}
 .btn-refresh{background:#2D59A8;color:#fff}
@@ -46,8 +48,16 @@ h1{font-size:22px;color:#2D59A8}
 </head>
 <body>
 <div class="c">
-<h1>📊 诊断数据管理后台</h1>
+<h1>📊 诊断管理后台</h1>
 <p class="sub">wiley不歪理老师 · 英语是门理科</p>
+
+<div class="setup" id="setupBox">
+<b>⚠ 检测到数据连接失败</b><br>
+请确保 WSL 中的服务器和隧道已启动：<br>
+<code>ssh -i /tmp/tunnel_key -R 80:localhost:8765 localhost.run</code><br>
+然后使用<b>隧道地址的管理页</b>而非此 GitHub Pages 地址。
+</div>
+
 <div class="actions">
 <button class="btn-refresh" onclick="loadData()">🔄 刷新</button>
 <button class="btn-export" onclick="exportCSV()">📥 导出CSV</button>
@@ -57,19 +67,25 @@ h1{font-size:22px;color:#2D59A8}
 <div class="stats" id="stats"></div>
 <div class="list" id="list"></div>
 <div class="detail" id="detail"></div>
-<div class="empty" id="empty"><div class="icon">📭</div>暂无诊断数据<br><small>等待家长填写后点击「刷新」</small></div>
+<div class="empty" id="empty"><div class="icon">📭</div>暂无数据</div>
 </div>
 <script>
-var BLOB='https://jsonblob.com/api/jsonBlob/019eaba4-a623-714e-ba44-98a45d8a3f7c';
-
+var API='';
+// Try local API first, if on tunnel domain it will work
 function loadData(){
  var s=document.getElementById('status');
  s.textContent='⏳ 加载中...';
- fetch(BLOB).then(function(r){return r.json();}).then(function(blob){
-  var data=blob.submissions||[];
+ 
+ // Try tunnel-domain API first
+ var url=window.location.origin+'/api/data';
+ fetch(url).then(function(r){return r.json();}).then(function(data){
   render(data);
+  document.getElementById('setupBox').style.display='none';
   s.textContent='✅ 共 '+data.length+' 条 · '+new Date().toLocaleTimeString();
- }).catch(function(e){s.textContent='⚠ 加载失败: '+e.message;});
+ }).catch(function(){
+  s.textContent='❌ 连接失败 · 请使用隧道地址的管理页';
+  document.getElementById('setupBox').style.display='block';
+ });
 }
 
 function render(data){
@@ -78,12 +94,13 @@ function render(data){
   document.getElementById('stats').innerHTML='';document.getElementById('list').innerHTML='';return;
  }
  document.getElementById('empty').style.display='none';
- var gz={};data.forEach(function(d){var g=d.grade;gz[g]=(gz[g]||0)+1;});
- var avg=Math.round(data.reduce(function(a,b){return a+b.score},0)/data.length);
+ var total=data.length;
+ var grades={};data.forEach(function(d){var g=d.grade;grades[g]=(grades[g]||0)+1;});
+ var avg=Math.round(data.reduce(function(a,b){return a+b.score},0)/total);
  var wc=data.filter(function(d){return d.contact&&d.contact!=='未填写';}).length;
- var h='<div class="stat"><div class="val">'+data.length+'</div><div class="lbl">总诊断数</div></div>';
+ var h='<div class="stat"><div class="val">'+total+'</div><div class="lbl">总诊断</div></div>';
  h+='<div class="stat"><div class="val">'+avg+'</div><div class="lbl">平均分</div></div>';
- h+='<div class="stat"><div class="val">'+wc+'</div><div class="lbl">已留联系方式</div></div>';
+ h+='<div class="stat"><div class="val">'+wc+'</div><div class="lbl">已留联系</div></div>';
  document.getElementById('stats').innerHTML=h;
  var l='';
  data.forEach(function(d,i){
@@ -96,9 +113,8 @@ function render(data){
 function showDetail(i){
  var d=window._data[i],dims=['记忆方式','语法思维','阅读策略','完形填空','写作方法','学习信心','时间效率'];
  var gc=d.grade==='优秀'?'g-excellent':d.grade==='良好'?'g-good':d.grade==='需要关注'?'g-attention':'g-urgent';
- var h='<span class="back" onclick="document.getElementById(\'detail\').style.display=\'none\'">← 返回</span>';
- h+='<h3 style="margin-bottom:16px">'+d.contact+' · '+d.score+'分 <span class="grade '+gc+'">'+d.grade+'</span></h3>';
- h+='<div class="d-row"><span class="dl">时间</span><span>'+d.time+'</span></div>';
+ var h='<span class="back" onclick="this.parentElement.style.display=\'none\'">← 返回</span>';
+ h+='<h3>'+d.contact+' · '+d.score+'分 <span class="grade '+gc+'">'+d.grade+'</span></h3>';
  (d.dimScores||[]).forEach(function(s,j){
   var b='';for(var k=0;k<5;k++)b+='<div class="br'+(k<Math.ceil(s/20)?' on':'')+'"></div>';
   h+='<div class="d-row"><span class="dl">'+dims[j]+'</span><span>'+s+'/100 <div class="bars">'+b+'</div></span></div>';
@@ -114,8 +130,8 @@ function exportCSV(){
  var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='诊断_'+new Date().toISOString().slice(0,10)+'.csv';document.body.appendChild(a);a.click();document.body.removeChild(a);
 }
 function clearData(){
- if(!confirm('确定清空所有数据？'))return;
- fetch(BLOB,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({submissions:[]})}).then(function(){loadData();});
+ if(!confirm('确定清空？'))return;
+ fetch(window.location.origin+'/api/submit',{method:'DELETE'}).then(function(){loadData();});
 }
 loadData();
 </script>
