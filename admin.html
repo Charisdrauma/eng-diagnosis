@@ -78,23 +78,13 @@ h1{font-size:22px;color:#2D59A8}
 </div>
 <script>
 var DATA_KEY='eng_diag_data_v2';
+var GITHUB_TOKEN='***';
 var GITHUB_REPO='Charisdrauma/eng-diagnosis';
-var GITHUB_TOKEN=localStorage.getItem('gh_token')||'';
 var API_BASE='https://api.github.com/repos/'+GITHUB_REPO;
 
-// Init
-var savedToken=localStorage.getItem('gh_token');
-if(savedToken){
- document.getElementById('tokenInput').value=savedToken;
- document.getElementById('tokenStatus').textContent='已保存 ✓';
-} else {
- document.getElementById('tokenStatus').textContent='未配置';
-}
-document.getElementById('tokenInput').onchange=function(){
- var v=this.value.trim();
- if(v){localStorage.setItem('gh_token',v);GITHUB_TOKEN=v;document.getElementById('tokenStatus').textContent='已保存 ✓';}
-};
-loadLocalData();
+// Init - auto-sync on load
+document.getElementById('tokenBar').style.display='none';
+syncFromGitHub();
 
 // Check URL for incoming shared data
 (function(){
@@ -178,7 +168,7 @@ function addManual(){
 }
 
 function uploadToGitHub(data){
- var token=document.getElementById('tokenInput').value||GITHUB_TOKEN;
+ var token=GITHUB_TOKEN;
  if(!token)return;
  var ts=new Date().toISOString().replace(/[:.]/g,'-');
  var path='data/'+ts+'.json';
@@ -194,8 +184,8 @@ function uploadToGitHub(data){
 }
 
 function syncFromGitHub(){
- var token=document.getElementById('tokenInput').value||GITHUB_TOKEN;
- if(!token){status('请先填入 GitHub Token');return;}
+ var token=GITHUB_TOKEN;
+ if(!token){status('Token 未配置');return;}
  status('⏳ 正在从云端拉取...');
  fetch(API_BASE+'/contents/data/?ref=main',{
   headers:{'Authorization':'token '+token}
