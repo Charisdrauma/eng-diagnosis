@@ -9,18 +9,13 @@
 body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;background:#F0F2F5;color:#333}
 .c{max-width:900px;margin:0 auto;padding:20px}
 h1{font-size:22px;color:#2D59A8}
-.sub{font-size:13px;color:#999;margin-bottom:4px}
-.token-bar{margin:16px 0;padding:12px;background:#FFF8E1;border-radius:8px;font-size:13px}
-.token-bar input{width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:13px;margin-top:4px}
-.token-bar .hint{color:#999;font-size:11px;margin-top:4px}
-.token-bar .saved{color:#2E7D32;font-weight:600}
+.sub{font-size:13px;color:#999;margin-bottom:16px}
 .actions{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap}
 .actions button{padding:10px 20px;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer}
-.btn-sync{background:#2D59A8;color:#fff}
+.btn-refresh{background:#2D59A8;color:#fff}
 .btn-export{background:#fff;color:#2D59A8;border:1px solid #2D59A8}
-.btn-add{background:#07C160;color:#fff}
 .btn-clear{background:#fff;color:#E54C5E;border:1px solid #E54C5E}
-.status{font-size:12px;color:#999;margin-top:8px}
+.status{font-size:12px;color:#666;margin:8px 0}
 .empty{padding:60px 20px;text-align:center;color:#999;font-size:15px;line-height:2}
 .empty .icon{font-size:48px}
 .stats{display:flex;gap:12px;margin:20px 0;flex-wrap:wrap}
@@ -28,7 +23,7 @@ h1{font-size:22px;color:#2D59A8}
 .stat .val{font-size:28px;font-weight:800;color:#2D59A8}
 .stat .lbl{font-size:12px;color:#999;margin-top:4px}
 .list{background:#fff;border-radius:12px;overflow:hidden}
-.list .item{padding:16px 20px;border-bottom:1px solid #F0F2F5;cursor:pointer;transition:background .2s}
+.list .item{padding:16px 20px;border-bottom:1px solid #F0F2F5;cursor:pointer}
 .list .item:hover{background:#F8FAFB}
 .list .item:last-child{border-bottom:none}
 .list .item .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
@@ -54,15 +49,8 @@ h1{font-size:22px;color:#2D59A8}
 <h1>📊 诊断数据管理后台</h1>
 <p class="sub">wiley不歪理老师 · 英语是门理科</p>
 
-<div class="token-bar" id="tokenBar">
-<div>🔑 GitHub Token <span class="saved" id="tokenStatus"></span></div>
-<input type="password" id="tokenInput" placeholder="粘贴 GitHub Token（已自动填充）">
-<div class="hint">Token 仅保存在你的浏览器中，用于同步数据到 GitHub 仓库</div>
-</div>
-
 <div class="actions">
-<button class="btn-sync" onclick="syncFromGitHub()">🔄 从云端同步</button>
-<button class="btn-add" onclick="addManual()">➕ 手动录入</button>
+<button class="btn-refresh" onclick="loadData()">🔄 刷新</button>
 <button class="btn-export" onclick="exportCSV()">📥 导出CSV</button>
 <button class="btn-clear" onclick="clearData()">🗑 清空</button>
 </div>
@@ -71,71 +59,51 @@ h1{font-size:22px;color:#2D59A8}
 <div class="stats" id="stats"></div>
 <div class="list" id="list"></div>
 <div class="detail" id="detail"></div>
-<div class="empty" id="empty">
-<div class="icon">📭</div>暂无诊断数据<br>
-<small>点击「从云端同步」拉取数据，或等待家长分享诊断链接后刷新此页面</small>
-</div>
+<div class="empty" id="empty"><div class="icon">📭</div>暂无诊断数据<br><small>等待家长填写后点击「刷新」</small></div>
 </div>
 <script>
-var DATA_KEY='eng_diag_data_v2';
-var GITHUB_TOKEN='***';
-var GITHUB_REPO='Charisdrauma/eng-diagnosis';
-var API_BASE='https://api.github.com/repos/'+GITHUB_REPO;
+var TOKEN='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';
+var REPO='Charisdrauma/eng-diagnosis';
+var API='https://api.github.com/repos/'+REPO;
+var DATA_DIR='data';
 
-// Init - auto-sync on load
-document.getElementById('tokenBar').style.display='none';
-syncFromGitHub();
-
-// Check URL for incoming shared data
-(function(){
- var p=new URLSearchParams(window.location.search);
- if(p.has('d')){
-  try{
-   var d=JSON.parse(decodeURIComponent(p.get('d')));
-   var local=getLocalData();
-   // Check duplicate
-   var dup=local.some(function(x){return x.time===d.time&&x.contact===d.contact;});
-   if(!dup){local.unshift(d);saveLocalData(local);uploadToGitHub(d);}
-   window.history.replaceState({},document.title,window.location.pathname);
-   loadLocalData();
-  }catch(e){}
- }
-})();
-
-function getLocalData(){
- try{return JSON.parse(localStorage.getItem(DATA_KEY)||'[]');}catch(e){return[];}
-}
-function saveLocalData(data){
- localStorage.setItem(DATA_KEY,JSON.stringify(data));
-}
-function loadLocalData(){
- var data=getLocalData();
- render(data);
-}
-function status(msg){
- document.getElementById('status').textContent=msg;
- setTimeout(function(){document.getElementById('status').textContent='';},5000);
+function loadData(){
+ var s=document.getElementById('status');
+ s.textContent='⏳ 加载中...';
+ fetch(API+'/contents/'+DATA_DIR+'?ref=main',{
+  headers:{'Authorization':'token '+TOKEN}
+ }).then(function(r){return r.json();}).then(function(files){
+  if(!Array.isArray(files)){s.textContent='暂无数据';render([]);return;}
+  var jsons=files.filter(function(f){return f.name.endsWith('.json');});
+  Promise.all(jsons.map(function(f){return fetch(f.download_url).then(function(r){return r.json();});})).then(function(results){
+   results.sort(function(a,b){return new Date(b.time)-new Date(a.time);});
+   render(results);
+   s.textContent='✅ 共 '+results.length+' 条 · '+new Date().toLocaleTimeString();
+  });
+ }).catch(function(e){s.textContent='⚠ 加载失败: '+e.message;});
 }
 
 function render(data){
  if(!data.length){
   document.getElementById('empty').style.display='block';
-  document.getElementById('stats').innerHTML='';
-  document.getElementById('list').innerHTML='';
-  return;
+  document.getElementById('stats').innerHTML='';document.getElementById('list').innerHTML='';return;
  }
  document.getElementById('empty').style.display='none';
  var total=data.length;
  var grades={};data.forEach(function(d){var g=d.grade;grades[g]=(grades[g]||0)+1;});
  var avg=Math.round(data.reduce(function(a,b){return a+b.score},0)/total);
- var withContact=data.filter(function(d){return d.contact&&d.contact!=='未填写';}).length;
- document.getElementById('stats').innerHTML='<div class="stat"><div class="val">'+total+'</div><div class="lbl">总诊断数</div></div><div class="stat"><div class="val">'+avg+'</div><div class="lbl">平均分</div></div><div class="stat"><div class="val">'+withContact+'</div><div class="lbl">已留联系方式</div></div>'+(grades['急需改善']?'<div class="stat"><div class="val">'+(grades['急需改善']||0)+'</div><div class="lbl">急需改善</div></div>':'');
- var h='';
+ var wc=data.filter(function(d){return d.contact&&d.contact!=='未填写';}).length;
+ var h='<div class="stat"><div class="val">'+total+'</div><div class="lbl">总诊断数</div></div>';
+ h+='<div class="stat"><div class="val">'+avg+'</div><div class="lbl">平均分</div></div>';
+ h+='<div class="stat"><div class="val">'+wc+'</div><div class="lbl">已留联系方式</div></div>';
+ if(grades['急需改善'])h+='<div class="stat"><div class="val">'+(grades['急需改善']||0)+'</div><div class="lbl">急需改善</div></div>';
+ document.getElementById('stats').innerHTML=h;
+ var l='';
  data.forEach(function(d,i){
   var gc=d.grade==='优秀'?'g-excellent':d.grade==='良好'?'g-good':d.grade==='需要关注'?'g-attention':'g-urgent';
-  h+='<div class="item" onclick="showDetail('+i+')"><div class="top"><span class="contact">'+(d.contact||'未留联系方式')+'</span><span class="time">'+d.time+'</span></div><div class="info">总分 <b>'+d.score+'</b>/100 <span class="grade '+gc+'">'+d.grade+'</span></div></div>';
+  l+='<div class="item" onclick="showDetail('+i+')"><div class="top"><span class="contact">'+(d.contact||'未留联系方式')+'</span><span class="time">'+d.time+'</span></div><div class="info">总分 <b>'+d.score+'</b>/100 <span class="grade '+gc+'">'+d.grade+'</span></div></div>';
  });
- document.getElementById('list').innerHTML=h;
+ document.getElementById('list').innerHTML=l;
  window._data=data;
 }
 
@@ -146,7 +114,7 @@ function showDetail(i){
  var h='<span class="back" onclick="document.getElementById(\'detail\').style.display=\'none\'">← 返回列表</span>';
  h+='<h3 style="margin-bottom:16px">'+d.contact+' · '+d.score+'分 <span class="grade '+gc+'">'+d.grade+'</span></h3>';
  h+='<div class="d-row"><span class="dl">提交时间</span><span>'+d.time+'</span></div>';
- d.dimScores.forEach(function(s,j){
+ (d.dimScores||[]).forEach(function(s,j){
   var bars='';for(var k=0;k<5;k++)bars+='<div class="br'+(k<Math.ceil(s/20)?' on':'')+'"></div>';
   h+='<div class="d-row"><span class="dl">'+dims[j]+'</span><span>'+s+'/100 <div class="bars">'+bars+'</div></span></div>';
  });
@@ -154,73 +122,27 @@ function showDetail(i){
  document.getElementById('detail').style.display='block';
 }
 
-function addManual(){
- var c=prompt('输入微信号/手机号：');if(!c)return;
- var s=parseInt(prompt('输入总分(0-100)：'));if(isNaN(s))return;
- var grades=['急需改善','需要关注','良好','优秀'];
- var gi=s>=80?3:s>=60?2:s>=40?1:0;
- var ds=[];
- for(var i=0;i<7;i++){ds.push(parseInt(prompt((i+1)+'/7 维度得分(0-100)：')||'50'));if(isNaN(ds[i]))return;}
- var d={time:new Date().toLocaleString('zh-CN'),contact:c,score:s,grade:grades[gi],dimScores:ds};
- var local=getLocalData();local.unshift(d);saveLocalData(local);
- uploadToGitHub(d);
- loadLocalData();
-}
-
-function uploadToGitHub(data){
- var token=GITHUB_TOKEN;
- if(!token)return;
- var ts=new Date().toISOString().replace(/[:.]/g,'-');
- var path='data/'+ts+'.json';
- var content=btoa(unescape(encodeURIComponent(JSON.stringify(data,null,2))));
- fetch(API_BASE+'/contents/'+path,{
-  method:'PUT',
-  headers:{'Authorization':'token '+token,'Content-Type':'application/json'},
-  body:JSON.stringify({message:'诊断数据: '+(data.contact||'匿名'),content:content})
- }).then(function(r){return r.json();}).then(function(j){
-  if(j.content)status('✅ 已同步到云端');
-  else status('⚠ 同步失败: '+(j.message||'未知错误'));
- }).catch(function(){status('⚠ 网络错误，数据已保存在本地');});
-}
-
-function syncFromGitHub(){
- var token=GITHUB_TOKEN;
- if(!token){status('Token 未配置');return;}
- status('⏳ 正在从云端拉取...');
- fetch(API_BASE+'/contents/data/?ref=main',{
-  headers:{'Authorization':'token '+token}
- }).then(function(r){return r.json();}).then(function(files){
-  if(!Array.isArray(files)){status('云端暂无数据或目录不存在');return;}
-  var local=getLocalData();
-  var exists=new Set(local.map(function(d){return d.time;}));
-  var promises=files.filter(function(f){return f.name.endsWith('.json');}).map(function(f){
-   return fetch(f.download_url).then(function(r){return r.json();});
-  });
-  return Promise.all(promises).then(function(results){
-   var added=0;
-   results.forEach(function(d){
-    if(!exists.has(d.time)){local.unshift(d);exists.add(d.time);added++;}
-   });
-   local.sort(function(a,b){return new Date(b.time)-new Date(a.time);});
-   saveLocalData(local);loadLocalData();
-   status('✅ 同步完成，新增 '+added+' 条');
-  });
- }).catch(function(e){status('⚠ 同步失败: '+e.message);});
-}
-
 function exportCSV(){
- var data=window._data||getLocalData();
- if(!data.length)return alert('无数据');
+ var d=window._data||[];if(!d.length)return alert('无数据');
  var dims=['记忆方式','语法思维','阅读策略','完形填空','写作方法','学习信心','时间效率'];
  var csv='时间,联系方式,总分,等级,'+dims.join(',')+'\n';
- data.forEach(function(d){csv+=d.time+','+(d.contact||'')+','+d.score+','+d.grade+','+(d.dimScores||[]).join(',')+'\n';});
- var blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
- var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='诊断数据_'+new Date().toISOString().slice(0,10)+'.csv';document.body.appendChild(a);a.click();document.body.removeChild(a);
+ d.forEach(function(r){csv+=r.time+','+(r.contact||'')+','+r.score+','+r.grade+','+(r.dimScores||[]).join(',')+'\n';});
+ var b=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
+ var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='诊断数据_'+new Date().toISOString().slice(0,10)+'.csv';document.body.appendChild(a);a.click();document.body.removeChild(a);
 }
 
 function clearData(){
- if(confirm('确定清空所有诊断数据？')){localStorage.removeItem(DATA_KEY);loadLocalData();status('已清空');}
+ if(!confirm('确定清空所有云端数据？'))return;
+ fetch(API+'/contents/'+DATA_DIR+'?ref=main',{headers:{'Authorization':'token '+TOKEN}}).then(function(r){return r.json();}).then(function(files){
+  if(!Array.isArray(files))return;
+  var jsons=files.filter(function(f){return f.name.endsWith('.json');});
+  Promise.all(jsons.map(function(f){
+   return fetch(API+'/contents/'+f.path,{method:'DELETE',headers:{'Authorization':'token '+TOKEN,'Content-Type':'application/json'},body:JSON.stringify({message:'删除'+f.name,sha:f.sha})});
+  })).then(function(){loadData();});
+ });
 }
+
+loadData();
 </script>
 </body>
 </html>

@@ -162,19 +162,18 @@ function showResult(){
  setTimeout(function(){new Chart(document.getElementById('rc'),{type:'radar',data:{labels:['记忆方式','语法思维','阅读策略','完形填空','写作方法','学习信心','时间效率'],datasets:[{label:'得分',data:ds,backgroundColor:'rgba(45,89,168,.15)',borderColor:'#2D59A8',borderWidth:2,pointBackgroundColor:'#2D59A8',pointRadius:4}]},options:{responsive:true,maintainAspectRatio:true,scales:{r:{min:0,max:100,ticks:{stepSize:20,backdropColor:'transparent'},pointLabels:{font:{size:12}}}},plugins:{legend:{display:false}}}});},200);
  // Auto upload to GitHub
  var reportData={time:new Date().toLocaleString('zh-CN'),contact:userContact||'未填写',score:av,grade:gl,dimScores:ds};
- uploadToGitHub(reportData);
+ saveToGitHub(reportData);
 }
 
-function uploadToGitHub(data){
- var TOKEN='ghp_kP...qKYR';
+function saveToGitHub(data){
+ var TOKEN='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';
  var REPO='Charisdrauma/eng-diagnosis';
- var ts=new Date().toISOString().replace(/[:.]/g,'-');
- var path='data/'+ts+'.json';
+ var ts=Date.now();
  var content=btoa(unescape(encodeURIComponent(JSON.stringify(data))));
- fetch('https://api.github.com/repos/'+REPO+'/contents/'+path,{
+ fetch('https://api.github.com/repos/'+REPO+'/contents/data/'+ts+'.json',{
   method:'PUT',
   headers:{'Authorization':'token '+TOKEN,'Content-Type':'application/json'},
-  body:JSON.stringify({message:'诊断: '+(data.contact||'匿名'),content:content})
+  body:JSON.stringify({message:'诊断: '+(data.contact||'?'),content:content})
  }).catch(function(){});
 }
 </script>
