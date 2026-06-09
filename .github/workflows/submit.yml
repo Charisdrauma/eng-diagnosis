@@ -1,0 +1,21 @@
+name: 接收诊断数据
+on:
+  repository_dispatch:
+    types: [diagnosis_submit]
+
+jobs:
+  save:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: 保存诊断数据
+        run: |
+          mkdir -p data
+          echo '${{ github.event.client_payload.data }}' > "data/${{ github.event.client_payload.ts }}.json"
+          git config user.name "bot"
+          git config user.email "bot@diagnosis.local"
+          git add data/
+          git commit -m "诊断: ${{ github.event.client_payload.contact }}" || true
+          git push

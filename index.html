@@ -162,18 +162,15 @@ function showResult(){
  setTimeout(function(){new Chart(document.getElementById('rc'),{type:'radar',data:{labels:['记忆方式','语法思维','阅读策略','完形填空','写作方法','学习信心','时间效率'],datasets:[{label:'得分',data:ds,backgroundColor:'rgba(45,89,168,.15)',borderColor:'#2D59A8',borderWidth:2,pointBackgroundColor:'#2D59A8',pointRadius:4}]},options:{responsive:true,maintainAspectRatio:true,scales:{r:{min:0,max:100,ticks:{stepSize:20,backdropColor:'transparent'},pointLabels:{font:{size:12}}}},plugins:{legend:{display:false}}}});},200);
  // Auto upload to GitHub
  var reportData={time:new Date().toLocaleString('zh-CN'),contact:userContact||'未填写',score:av,grade:gl,dimScores:ds};
- saveToGitHub(reportData);
+ saveData(reportData);
 }
 
-function saveToGitHub(data){
- var TOKEN='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';
- var REPO='Charisdrauma/eng-diagnosis';
- var ts=Date.now();
- var content=btoa(unescape(encodeURIComponent(JSON.stringify(data))));
- fetch('https://api.github.com/repos/'+REPO+'/contents/data/'+ts+'.json',{
-  method:'PUT',
-  headers:{'Authorization':'token '+TOKEN,'Content-Type':'application/json'},
-  body:JSON.stringify({message:'诊断: '+(data.contact||'?'),content:content})
+function saveData(data){
+ var BLOB='https://jsonblob.com/api/jsonBlob/019eaba4-a623-714e-ba44-98a45d8a3f7c';
+ fetch(BLOB).then(function(r){return r.json();}).then(function(blob){
+  var subs=blob.submissions||[];
+  subs.unshift(data);
+  return fetch(BLOB,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({submissions:subs})});
  }).catch(function(){});
 }
 </script>
