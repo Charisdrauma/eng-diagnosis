@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>英语是门理科——学习问题诊断</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;background:#F0F2F5;color:#333;min-height:100vh}
+.c{max-width:480px;margin:0 auto;min-height:100vh;background:#fff;position:relative}
+.home{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:40px 24px;text-align:center;background:linear-gradient(180deg,#2D59A8,#1a3d7a);color:#fff}
+.home h1{font-size:28px;line-height:1.4;margin-bottom:12px}
+.home p{font-size:15px;opacity:.85;margin-bottom:40px;line-height:1.6}
+.home .btn{background:#fff;color:#2D59A8;border:none;padding:14px 60px;font-size:18px;font-weight:700;border-radius:50px;cursor:pointer;letter-spacing:2px;box-shadow:0 4px 20px rgba(0,0,0,.2)}
+.home .fs{display:flex;gap:24px;margin-top:50px}
+.home .fs .f{text-align:center;font-size:12px;opacity:.7}
+.home .fs .f .ic{font-size:32px;margin-bottom:8px;display:block}
+.prog{position:sticky;top:0;background:#fff;padding:16px 24px 8px;z-index:10;display:none}
+.prog .bar{height:6px;background:#E8ECF1;border-radius:3px;overflow:hidden}
+.prog .bar .fill{height:100%;background:#2D59A8;border-radius:3px;transition:width .3s}
+.prog .txt{font-size:12px;color:#999;margin-top:6px;text-align:right}
+.quiz{display:none;padding:24px 24px 120px}
+.quiz .dh{text-align:center;margin-bottom:8px}
+.quiz .dh .ic{font-size:40px;margin-bottom:8px;display:block}
+.quiz .dh .t{font-size:13px;color:#2D59A8;font-weight:700;letter-spacing:2px;margin-bottom:8px}
+.quiz .dh .st{font-size:14px;color:#666;margin-bottom:24px}
+.quiz .q{margin-bottom:32px}
+.quiz .q .qn{font-size:12px;color:#999;margin-bottom:8px}
+.quiz .q .qt{font-size:16px;font-weight:600;color:#222;margin-bottom:16px;line-height:1.5}
+.quiz .opts{display:flex;flex-direction:column;gap:10px}
+.quiz .opt{display:flex;align-items:flex-start;padding:14px 16px;border:2px solid #E8ECF1;border-radius:12px;cursor:pointer;transition:all .2s;gap:12px}
+.quiz .opt:hover{border-color:#2D59A8;background:#F5F8FD}
+.quiz .opt.sel{border-color:#2D59A8;background:#EBF1FA}
+.quiz .opt .ol{width:28px;height:28px;border-radius:50%;background:#E8ECF1;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#666;flex-shrink:0}
+.quiz .opt.sel .ol{background:#2D59A8;color:#fff}
+.quiz .opt .ot{font-size:14px;line-height:1.5;color:#444;flex:1}
+.quiz .bn{display:block;width:100%;padding:14px;background:#2D59A8;color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:600;cursor:pointer;letter-spacing:1px}
+.quiz .bn:disabled{background:#C4CDD9;cursor:not-allowed}
+.res{display:none;padding:32px 24px 80px}
+.res .rh{text-align:center;margin-bottom:32px}
+.res .rh .g{display:inline-block;padding:8px 24px;border-radius:50px;font-size:14px;font-weight:700;margin-bottom:16px}
+.res .rh .sc{font-size:48px;font-weight:800;color:#2D59A8}
+.res .rh .sc span{font-size:18px;color:#999;font-weight:400}
+.res .rh .rt{font-size:20px;font-weight:700;margin-top:8px}
+.res .rh .rd{color:#666;font-size:14px;margin-top:8px;line-height:1.6}
+.rw{width:100%;max-width:340px;margin:0 auto 32px}
+.dd{margin-bottom:24px;padding:16px;background:#F8FAFB;border-radius:12px;border-left:4px solid #2D59A8}
+.dd .dh2{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.dd .dn{font-size:16px;font-weight:700}
+.dd .ds{font-size:13px;color:#666}
+.dd .ds b{color:#2D59A8}
+.dd .bars{display:flex;gap:3px;margin-bottom:10px}
+.dd .bars .br{flex:1;height:4px;border-radius:2px;background:#E8ECF1}
+.dd .bars .br.on{background:#2D59A8}
+.dd .da{font-size:13px;color:#555;line-height:1.6}
+.sm{padding:20px;background:linear-gradient(135deg,#2D59A8,#1a3d7a);color:#fff;border-radius:16px;margin-bottom:24px}
+.sm h3{font-size:18px;margin-bottom:12px}
+.sm p{font-size:14px;line-height:1.7;opacity:.9}
+.tps{margin-bottom:24px}
+.tps h3{font-size:17px;margin-bottom:12px;color:#2D59A8}
+.tps .ti{display:flex;gap:12px;margin-bottom:12px;padding:12px;background:#F8FAFB;border-radius:10px}
+.tps .ti .tn{width:26px;height:26px;border-radius:50%;background:#2D59A8;color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0}
+.tps .ti .tt{font-size:14px;color:#444;line-height:1.5}
+.retry{width:100%;padding:14px;background:#fff;color:#2D59A8;border:2px solid #2D59A8;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer}
+.ft{text-align:center;padding:20px 16px;color:#999;font-size:11px;line-height:2;display:none}
+.ft .wx{color:#2D59A8;font-weight:700;font-size:13px;user-select:all;-webkit-user-select:all}
+.ft .hint{font-size:10px;color:#bbb}
+</style>
+</head>
+<body>
+<div class="c">
+
+<div class="home" id="home">
+<h1>英语是门理科</h1>
+<p>10分钟诊断<br>找到孩子英语差的真正原因</p>
+<button class="btn" onclick="start()">开始诊断</button>
+<div class="fs">
+<div class="f"><span class="ic">📊</span>7维诊断</div>
+<div class="f"><span class="ic">⏱️</span>10分钟</div>
+<div class="f"><span class="ic">📋</span>21道题</div>
+</div>
+</div>
+
+<div class="prog" id="prog">
+<div class="bar"><div class="fill" id="fill"></div></div>
+<div class="txt" id="ptxt">1/7</div>
+</div>
+
+<div class="quiz" id="quiz"></div>
+<div class="res" id="res"></div>
+
+<div class="ft" id="ft">
+<p>wiley不歪理老师出品 · 需要具体分析可联系微信</p>
+<p><span class="wx">Wesleyan1701214403</span></p>
+<p class="hint">👆 长按复制微信号</p>
+<p style="margin-top:6px">诊断基于《英语是门理科》方法论</p>
+</div>
+
+</div>
+<script>
+var D=[{n:"记忆方式",i:"🧠",st:"了解孩子背单词的方式——理解型记忆还是死记硬背",q:[{t:"孩子背单词的主要方式是什么？",o:[{x:"会拆词根词缀（如知道-tion是名词后缀），联系已知词举一反三",s:3},{x:"部分用联想法记，但多数还是反复抄写背诵",s:2},{x:"一个一个字母死记，今天背明天忘，反复抄10遍还记不住",s:1}]},{t:"遇到生词时，孩子通常怎么处理？",o:[{x:"先看结构，猜词根词缀和词性，结合上下文推断",s:3},{x:"会猜一下，不确定就马上查字典或问人",s:2},{x:"直接懵掉，觉得不认识就没法继续",s:1}]},{t:"背完单词能记住多久？",o:[{x:"有方法有体系，复习一两遍就长期记住",s:3},{x:"考前突击能记住，考完很快忘，反复在背反复在忘",s:2},{x:"当天背完第二天就忘大半，好像脑子有个洞",s:1}]}]},{n:"语法思维",i:"🔧",st:"判断是真正理解语法逻辑，还是机械背诵规则",q:[{t:"做语法题时，孩子靠什么选答案？",o:[{x:"能讲出逻辑（如为什么用过去完成时——动作先后关系）",s:3},{x:"背过类似题目和搭配，凭记忆和语感做题",s:2},{x:"纯靠感觉，觉得顺口就选，常被干扰项带偏",s:1}]},{t:"孩子怎么看待语法规则？",o:[{x:"觉得语法有逻辑体系，像数学公式一样可推导",s:3},{x:"知道一些规律但说不清，做题时经常犹豫",s:2},{x:"觉得语法是死规矩，太多太乱，理不清",s:1}]},{t:"写英语句子时语法表现如何？",o:[{x:"能主动检查时态、主谓一致，写完会回顾修正",s:3},{x:"简单句没问题，复杂句经常丢三落四",s:2},{x:"语法错一大堆，三单忘加s、时态乱用",s:1}]}]},{n:"阅读策略",i:"🔍",st:"看孩子做阅读理解的方式——精准检索还是逐字硬翻",q:[{t:"孩子做阅读理解题的步骤是？",o:[{x:"先看题目划关键词，带问题去文章定位，快速锁定答案区间",s:3},{x:"通读全文再做题，但读完忘了前面，反复回看",s:2},{x:"从头到尾逐字翻译，看完也不知道在说什么",s:1}]},{t:"遇到不认识的单词怎么办？",o:[{x:"判断是否影响答题，不影响跳过，影响就根据上下文和词根猜",s:3},{x:"纠结一会儿，猜不出就硬着头皮继续",s:2},{x:"一遇生词就卡住，心态崩了，后面也不想看了",s:1}]},{t:"阅读正确率和速度怎么样？",o:[{x:"准确率还行，时间够用，知哪题该花时间哪题可速过",s:3},{x:"准确率不稳定，有时全对有时错一半，总觉时间不够",s:2},{x:"阅读是噩梦，做不完也做不对，每次阅读扣分最多",s:1}]}]},{n:"完形填空",i:"🧩",st:"完形是理科思维的典型体现——看孩子是否有解题章法",q:[{t:"孩子做完形填空有固定方法吗？",o:[{x:"有：通读把握大意→逐空分析线索→代入验证→通读检查",s:3},{x:"大概知道看上下文，但常忽略提示词，凭感觉蒙",s:2},{x:"没任何章法，读一空填一空，后面线索出现也看不到",s:1}]},{t:"做完形最容易因什么出错？",o:[{x:"偶因词汇不认识出错，但方法论对，大部分空能找到依据",s:3},{x:"固定搭配记不住、近义词分不清，有时觉两选项都对",s:2},{x:"几乎每空都纠结，选项都差不多，纯粹在蒙",s:1}]},{t:"做完形后怎么检查？",o:[{x:"代入答案通读，检查语义是否通顺、逻辑是否一致",s:3},{x:"扫一眼但很少能发现错误，因不知道怎么检查",s:2},{x:"做完不想看第二遍，做完形太痛苦了",s:1}]}]},{n:"写作方法",i:"✍️",st:"看孩子写作文是否有结构化思维，还是想到哪写哪",q:[{t:"孩子写英语作文的流程是？",o:[{x:"先列提纲搭框架，写好后再检查语法拼写",s:3},{x:"想一下大概写什么，写着写着就偏了，结构松散",s:2},{x:"提笔就写，想到什么写什么，凑够字数就停",s:1}]},{t:"作文里句型使用情况？",o:[{x:"灵活运用多种句型，根据需要选择",s:3},{x:"几套常用模板句型，每次套用，少变化但不出错",s:2},{x:"全是简单句，I think...翻来覆去就那几个句式",s:1}]},{t:"考试作文扣分主要因为什么？",o:[{x:"偶有拼写标点小错，结构和内容没问题",s:3},{x:"语法错较多，内容还行但表达不够准确",s:2},{x:"跑题或字数不够，语法错一大堆，得分很低",s:1}]}]},{n:"学习信心",i:"💪",st:"信心的本质是方法掌控感，不是盲目乐观或悲观",q:[{t:"提到英语学习，孩子的反应是？",o:[{x:"知弱项在哪，有明确改进方向，虽不最强但心里有底",s:3},{x:"想学好但不知从哪下手，努力了但成绩没起色，迷茫",s:2},{x:"觉得自己就是学不好英语的料，放弃挣扎了",s:1}]},{t:"理科和英语的成绩差距大吗？",o:[{x:"理科学得不错，英语虽稍弱但有信心用理科方法攻克",s:3},{x:"理科很好但英语拖后腿，总分被拉低很多，焦虑",s:2},{x:"因英语差连带理科信心也在下降，越来越不自信",s:1}]},{t:"孩子怎么解释自己的英语成绩？",o:[{x:"说「还没找到对的方法」，相信自己能提升",s:3},{x:"说「已经很努力了但学不好」，有点无奈",s:2},{x:"说「我就学不会英语」「天生没语言天赋」，完全认命",s:1}]}]},{n:"时间效率",i:"⏰",st:"花很多时间效果差——问题不在努力而在方法",q:[{t:"每天花多少时间学英语？效果如何？",o:[{x:"时间花在刀刃上，有针对性练习，同样时间效果明显",s:3},{x:"花不少时间但成绩没明显提升，不知哪里出问题",s:2},{x:"大量时间砸进去，效果微乎其微",s:1}]},{t:"会做错题整理和分析吗？",o:[{x:"有错题本，分析错因、总结规律，同样错误不犯第二次",s:3},{x:"老师要求就整理，但只抄一遍，不总结背后原因",s:2},{x:"没有错题本，错了就错，下次继续错同样题",s:1}]},{t:"考前复习策略是怎样的？",o:[{x:"有明确复习计划，优先级清晰，弱项重点突破",s:3},{x:"想全复习但时间不够，临考前还在手忙脚乱",s:2},{x:"不知道复习什么，要么刷题刷到麻木，要么干脆放弃复习英语",s:1}]}]}];
+
+var cd=0,sc=[];
+function start(){
+ document.getElementById('home').style.display='none';
+ document.getElementById('prog').style.display='block';
+ document.getElementById('quiz').style.display='block';
+ document.getElementById('ft').style.display='block';
+ rd();
+}
+function rd(){
+ if(cd>=D.length){sh();return;}
+ var d=D[cd],h='<div class="dh"><span class="ic">'+d.i+'</span><div class="t">'+d.n+'</div><div class="st">'+d.st+'</div></div><div id="qs"></div><button class="bn" id="bn" disabled onclick="nx()">下一维度 →</button>';
+ document.getElementById('quiz').innerHTML=h;
+ document.getElementById('ptxt').textContent=(cd+1)+'/7 · '+d.n;
+ document.getElementById('fill').style.width=(cd/7*100)+'%';
+ rq();
+}
+function rq(){
+ var d=D[cd],h='';
+ d.q.forEach(function(q,qi){
+  h+='<div class="q"><div class="qn">第'+(cd*3+qi+1)+'题 / 共21题</div><div class="qt">'+q.t+'</div><div class="opts" data-d="'+cd+'" data-q="'+qi+'">';
+  q.o.forEach(function(o,oi){
+   h+='<div class="opt" onclick="sl(this,'+o.s+','+cd+','+qi+')"><div class="ol">'+String.fromCharCode(65+oi)+'</div><div class="ot">'+o.x+'</div></div>';
+  });
+  h+='</div></div>';
+ });
+ document.getElementById('qs').innerHTML=h;
+}
+function sl(el,s,dim,qi){
+ el.parentElement.querySelectorAll('.opt').forEach(function(o){o.classList.remove('sel')});
+ el.classList.add('sel');
+ if(!sc[dim])sc[dim]=[];
+ sc[dim][qi]=s;
+ var ok=sc[dim]&&sc[dim].filter(function(x){return x!==undefined}).length===D[dim].q.length;
+ document.getElementById('bn').disabled=!ok;
+}
+function nx(){
+ if(!sc[cd]||sc[cd].filter(function(x){return x!==undefined}).length<D[cd].q.length)return;
+ cd++;
+ document.getElementById('fill').style.width=(cd/7*100)+'%';
+ if(cd>=D.length){sh();}else{rd();window.scrollTo(0,0);}
+}
+function sh(){
+ document.getElementById('quiz').style.display='none';
+ document.getElementById('prog').style.display='none';
+ document.getElementById('res').style.display='block';
+ var ds=[],tr=0;
+ for(var i=0;i<7;i++){var r=sc[i]?sc[i].reduce(function(a,b){return a+b},0):3;tr+=r;ds.push(Math.round(r/9*100));}
+ var av=Math.round(ds.reduce(function(a,b){return a+b},0)/7);
+ var gv,gc,gl,gt,gd;
+ if(av>=80){gv='excellent';gc='#E8F5E9';gcl='#2E7D32';gl='优秀';gt='理科思维很不错！';gd='孩子在英语学习上已展现较强结构化思维能力，善于寻找规律和逻辑。保持方法，英语会越来越轻松。';}
+ else if(av>=60){gv='good';gc='#E3F2FD';gcl='#1565C0';gl='良好';gt='有一定方法意识，还需强化';gd='已意识到方法重要但执行不够稳定。需把「灵光一现」变成「稳定输出」，建立系统化学习SOP。';}
+ else if(av>=40){gv='attention';gc='#FFF3E0';gcl='#E65100';gl='需要关注';gt='正在用学文科的方式学英语';gd='目前偏重记忆和重复，缺少结构化思维。好消息——理科好的孩子完全能学好英语，关键要换方法。';}
+ else{gv='urgent';gc='#FFEBEE';gcl='#C62828';gl='急需改善';gt='英语学习方式需要根本改变';gd='孩子陷入「努力但无效」的恶性循环。继续目前学法只会越来越累、越来越没信心。需立即切换到理科思维学习法。';}
+ var adv=[
+  {n:'记忆方式',i:'🧠',h:'已能运用词根词缀等规律记单词。可进一步系统学200常见词根词缀，词汇量爆发式增长。',m:'有记忆规律意识但不够系统。建议学词根词缀体系，从被动记忆变主动拆解。',l:'死记硬背是最大陷阱。从20个高频词根开始，学「拆」单词——记住一个词根等于十几个单词。'},
+  {n:'语法思维',i:'🔧',h:'能把语法当逻辑体系学，理科生天然优势。可尝试用思维导图梳理时态和非谓语逻辑。',m:'在「知其然不知其所以然」状态。选一时态主题，用时间轴画动作先后，理解逻辑就不用死记。',l:'语法不是死规则，是表达思维的工具。从五大基本句型开始，像搭积木一样理解句子结构。'},
+  {n:'阅读策略',i:'🔍',h:'已掌握检索式阅读，效率很高。可提升长难句拆解——10词以上长句瞬间找主干。',m:'训练「先题后文」检索策略，问题就是导航。不影响答题的生词果断跳过。',l:'停止逐字翻译，改用关键词定位法——先找问题关键词，再到文章精准定位。速度正确率翻倍。'},
+  {n:'完形填空',i:'🧩',h:'已掌握四轮排除法。可关注篇章逻辑线索——转折、因果、并列等关系词。',m:'建系统流程：先通读→逐空找上下文线索→代入验证。每空必须找到依据。',l:'完形不是碰运气，每空都有线索。训练「找线索」——每选一题必须说出依据。'},
+  {n:'写作方法',i:'✍️',h:'结构化写作方法掌握得很好。可建「句型库」和「论证模板」，让写作像搭积木。',m:'写前花3分钟列提纲：观点+两个论据+每个用什么例子。有框架就不会跑偏。',l:'提笔就写是大忌。先从「模仿」开始——用范文框架换自己内容。写作是装配不是创作。'},
+  {n:'学习信心',i:'💪',h:'对英语有清晰认知和方法掌控感，真正的信心来自「我知道怎么做」。',m:'信心不足问题不在能力在方法。从小目标开始——「这周阅读理解少错2题」。',l:'不是没能力，是用错方法。物理受力分析比英语句子分析难多了。换方法马上能见变化。'},
+  {n:'时间效率',i:'⏰',h:'时间效率很高。可尝试番茄钟和间隔复习，效率再上一层。',m:'做一周时间日志，看哪些是「真学习」哪些是「假努力」——抄写10遍是假努力，拆解1个词根是真学习。',l:'不是不努力，是方向错了。每天2小时死背单词不如30分钟学词根规律。停止假努力，开始真学习。'}
+ ];
+ var h='<div class="rh"><div class="g" style="background:'+gc+';color:'+gcl+'">'+gl+'</div><div class="sc">'+av+'<span>/100</span></div><div class="rt">'+gt+'</div><div class="rd">'+gd+'</div></div><div class="rw"><canvas id="rc"></canvas></div>';
+ ds.forEach(function(s,i){
+  var lv=s>=80?'h':s>=60?'m':'l',a=adv[i],tv='';
+  for(var j=0;j<5;j++)tv+='<div class="br'+(j<Math.ceil(s/20)?' on':'')+'"></div>';
+  h+='<div class="dd"><div class="dh2"><div class="dn">'+a.i+' '+a.n+'</div><div class="ds">得分 <b>'+s+'</b>/100</div></div><div class="bars">'+tv+'</div><div class="da">'+a[lv]+'</div></div>';
+ });
+ h+='<div class="sm"><h3>📋 总体诊断</h3><p>'+gd+'</p></div><div class="tps"><h3>🔑 三个核心建议</h3>';
+ h+='<div class="ti"><div class="tn">1</div><div class="tt">把英语当工程问题：确定目标→拆解模块→逐个攻克→系统检验。和做物理题一样思路。</div></div>';
+ h+='<div class="ti"><div class="tn">2</div><div class="tt">停止死记硬背：单词用词根拆解法、语法用逻辑推导法、阅读用关键词检索法。</div></div>';
+ h+='<div class="ti"><div class="tn">3</div><div class="tt">建立反馈闭环：做题→分析错因→针对弱项刻意练习→再验证。和理科实验一样，错了知为什么错。</div></div></div>';
+ h+='<button class="retry" onclick="location.reload()">🔄 重新诊断</button>';
+ document.getElementById('res').innerHTML=h;
+ window.scrollTo(0,0);
+ setTimeout(function(){
+  new Chart(document.getElementById('rc'),{type:'radar',data:{labels:['记忆方式','语法思维','阅读策略','完形填空','写作方法','学习信心','时间效率'],datasets:[{label:'得分',data:ds,backgroundColor:'rgba(45,89,168,.15)',borderColor:'#2D59A8',borderWidth:2,pointBackgroundColor:'#2D59A8',pointRadius:4}]},options:{responsive:true,maintainAspectRatio:true,scales:{r:{min:0,max:100,ticks:{stepSize:20,backdropColor:'transparent'},pointLabels:{font:{size:12}}}},plugins:{legend:{display:false}}}});
+ },200);
+}
+</script>
+</body>
+</html>
