@@ -157,22 +157,26 @@ function showResult(){
  h+='<div class="ti"><div class="tn">1</div><div class="tt">把英语当工程问题：确定目标→拆解模块→逐个攻克→系统检验。和做物理题一样思路。</div></div>';
  h+='<div class="ti"><div class="tn">2</div><div class="tt">停止死记硬背：单词用词根拆解法、语法用逻辑推导法、阅读用关键词检索法。</div></div>';
  h+='<div class="ti"><div class="tn">3</div><div class="tt">建立反馈闭环：做题→分析错因→针对弱项刻意练习→再验证。和理科实验一样，错了知为什么错。</div></div></div>';
- h+='<button class="share" onclick="shareResult()">📤 分享诊断结果给老师</button>';
  h+='<button class="retry" onclick="location.reload()">🔄 重新诊断</button>';
  document.getElementById('res').innerHTML=h;window.scrollTo(0,0);
  setTimeout(function(){new Chart(document.getElementById('rc'),{type:'radar',data:{labels:['记忆方式','语法思维','阅读策略','完形填空','写作方法','学习信心','时间效率'],datasets:[{label:'得分',data:ds,backgroundColor:'rgba(45,89,168,.15)',borderColor:'#2D59A8',borderWidth:2,pointBackgroundColor:'#2D59A8',pointRadius:4}]},options:{responsive:true,maintainAspectRatio:true,scales:{r:{min:0,max:100,ticks:{stepSize:20,backdropColor:'transparent'},pointLabels:{font:{size:12}}}},plugins:{legend:{display:false}}}});},200);
+ // Auto upload to GitHub
+ var reportData={time:new Date().toLocaleString('zh-CN'),contact:userContact||'未填写',score:av,grade:gl,dimScores:ds};
+ uploadToGitHub(reportData);
 }
-function shareResult(){
- var ds=[],tr=0;for(var i=0;i<7;i++){var r=sc[i]?sc[i].reduce(function(a,b){return a+b},0):3;tr+=r;ds.push(Math.round(r/9*100));}
- var av=Math.round(ds.reduce(function(a,b){return a+b},0)/7);
- var gl=av>=80?'优秀':av>=60?'良好':av>=40?'需要关注':'急需改善';
- var data={time:new Date().toLocaleString('zh-CN'),contact:userContact||'未填写',score:av,grade:gl,dimScores:ds};
- var d=encodeURIComponent(JSON.stringify(data));
- var url='https://charisdrauma.github.io/eng-diagnosis/admin.html?d='+d;
- if(navigator.clipboard){navigator.clipboard.writeText(url).then(function(){toast('链接已复制！发送给老师即可')});}
- else{prompt('复制以下链接发送给老师：',url);}
+
+function uploadToGitHub(data){
+ var TOKEN='ghp_kP...qKYR';
+ var REPO='Charisdrauma/eng-diagnosis';
+ var ts=new Date().toISOString().replace(/[:.]/g,'-');
+ var path='data/'+ts+'.json';
+ var content=btoa(unescape(encodeURIComponent(JSON.stringify(data))));
+ fetch('https://api.github.com/repos/'+REPO+'/contents/'+path,{
+  method:'PUT',
+  headers:{'Authorization':'token '+TOKEN,'Content-Type':'application/json'},
+  body:JSON.stringify({message:'诊断: '+(data.contact||'匿名'),content:content})
+ }).catch(function(){});
 }
-function toast(msg){var t=document.getElementById('toast');t.textContent=msg;t.style.display='block';setTimeout(function(){t.style.display='none'},2000);}
 </script>
 </body>
 </html>
