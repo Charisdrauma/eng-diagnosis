@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>诊断数据管理后台</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;background:#F0F2F5;color:#333}
+.c{max-width:900px;margin:0 auto;padding:20px}
+h1{font-size:22px;color:#2D59A8;margin-bottom:4px}
+.sub{font-size:13px;color:#999;margin-bottom:24px}
+.actions{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+.actions button{padding:10px 20px;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer}
+.btn-export{background:#2D59A8;color:#fff}
+.btn-clear{background:#fff;color:#E54C5E;border:1px solid #E54C5E}
+.btn-refresh{background:#fff;color:#2D59A8;border:1px solid #2D59A8}
+.empty{padding:60px 20px;text-align:center;color:#999;font-size:15px;line-height:2}
+.empty .icon{font-size:48px}
+.stats{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+.stat{flex:1;min-width:100px;background:#fff;padding:16px;border-radius:12px;text-align:center}
+.stat .val{font-size:28px;font-weight:800;color:#2D59A8}
+.stat .lbl{font-size:12px;color:#999;margin-top:4px}
+.list{background:#fff;border-radius:12px;overflow:hidden}
+.list .item{padding:16px 20px;border-bottom:1px solid #F0F2F5;cursor:pointer;transition:background .2s}
+.list .item:hover{background:#F8FAFB}
+.list .item:last-child{border-bottom:none}
+.list .item .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.list .item .contact{font-weight:700;font-size:15px}
+.list .item .time{font-size:12px;color:#999}
+.list .item .info{font-size:13px;color:#666}
+.list .item .info .grade{padding:2px 8px;border-radius:4px;font-size:12px;font-weight:600}
+.g-excellent{background:#E8F5E9;color:#2E7D32}
+.g-good{background:#E3F2FD;color:#1565C0}
+.g-attention{background:#FFF3E0;color:#E65100}
+.g-urgent{background:#FFEBEE;color:#C62828}
+.detail{display:none;background:#fff;border-radius:12px;padding:24px;margin-top:16px}
+.detail .back{font-size:14px;color:#2D59A8;cursor:pointer;margin-bottom:16px;display:inline-block}
+.detail .d-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #F0F2F5;font-size:14px}
+.detail .d-row .dl{color:#999}
+.detail .bars{display:flex;gap:3px;margin:4px 0}
+.detail .bars .br{flex:1;height:6px;border-radius:3px;background:#E8ECF1}
+.detail .bars .br.on{background:#2D59A8}
+</style>
+</head>
+<body>
+<div class="c">
+<h1>📊 诊断数据管理后台</h1>
+<p class="sub">wiley不歪理老师 · 英语是门理科 · 用户诊断数据汇总</p>
+
+<div class="actions">
+<button class="btn-refresh" onclick="loadData()">🔄 刷新数据</button>
+<button class="btn-export" onclick="exportCSV()">📥 导出CSV</button>
+<button class="btn-clear" onclick="clearData()">🗑 清空数据</button>
+</div>
+
+<div class="stats" id="stats"></div>
+<div class="list" id="list"></div>
+<div class="detail" id="detail"></div>
+<div class="empty" id="empty"><div class="icon">📭</div>暂无诊断数据<br><small>分享链接中包含的数据会自动在这里显示</small></div>
+</div>
+<script>
+var DATA_KEY='eng_diag_data';
+function loadData(){
+ var raw=localStorage.getItem(DATA_KEY);
+ var data=raw?JSON.parse(raw):[];
+ // Check URL for new data
+ var params=new URLSearchParams(window.location.search);
+ if(params.has('d')){
+  try{var d=JSON.parse(decodeURIComponent(params.get('d')));data.unshift(d);}catch(e){}
+  localStorage.setItem(DATA_KEY,JSON.stringify(data));
+  // Clean URL
+  window.history.replaceState({},document.title,window.location.pathname);
+ }
+ render(data);
+}
+function render(data){
+ if(!data.length){document.getElementById('empty').style.display='block';document.getElementById('stats').innerHTML='';document.getElementById('list').innerHTML='';return;}
+ document.getElementById('empty').style.display='none';
+ // Stats
+ var total=data.length;
+ var grades={};data.forEach(function(d){var g=d.grade;grades[g]=(grades[g]||0)+1;});
+ var avg=Math.round(data.reduce(function(a,b){return a+b.score},0)/total);
+ var withContact=data.filter(function(d){return d.contact&&d.contact!=='未填写';}).length;
+ document.getElementById('stats').innerHTML='<div class="stat"><div class="val">'+total+'</div><div class="lbl">总诊断数</div></div><div class="stat"><div class="val">'+avg+'</div><div class="lbl">平均分</div></div><div class="stat"><div class="val">'+withContact+'</div><div class="lbl">已留联系方式</div></div>'+(grades['急需改善']?'<div class="stat"><div class="val">'+(grades['急需改善']||0)+'</div><div class="lbl">急需改善</div></div>':'');
+ // List
+ var h='';
+ data.forEach(function(d,i){
+  var gc=d.grade==='优秀'?'g-excellent':d.grade==='良好'?'g-good':d.grade==='需要关注'?'g-attention':'g-urgent';
+  h+='<div class="item" onclick="showDetail('+i+')"><div class="top"><span class="contact">'+(d.contact||'未留联系方式')+'</span><span class="time">'+d.time+'</span></div><div class="info">总分 <b>'+d.score+'</b>/100 <span class="grade '+gc+'">'+d.grade+'</span></div></div>';
+ });
+ document.getElementById('list').innerHTML=h;
+ window._data=data;
+}
+function showDetail(i){
+ var d=window._data[i];
+ var dims=['记忆方式','语法思维','阅读策略','完形填空','写作方法','学习信心','时间效率'];
+ var gc=d.grade==='优秀'?'g-excellent':d.grade==='良好'?'g-good':d.grade==='需要关注'?'g-attention':'g-urgent';
+ var h='<span class="back" onclick="document.getElementById(\'detail\').style.display=\'none\'">← 返回列表</span>';
+ h+='<h3 style="margin-bottom:16px">'+d.contact+' · 总分 '+d.score+' <span class="grade '+gc+'">'+d.grade+'</span></h3>';
+ h+='<div class="d-row"><span class="dl">提交时间</span><span>'+d.time+'</span></div>';
+ h+='<div class="d-row"><span class="dl">联系方式</span><span>'+d.contact+'</span></div>';
+ d.dimScores.forEach(function(s,j){
+  var bars='';for(var k=0;k<5;k++)bars+='<div class="br'+(k<Math.ceil(s/20)?' on':'')+'"></div>';
+  h+='<div class="d-row"><span class="dl">'+dims[j]+'</span><span>'+s+'/100 <div class="bars">'+bars+'</div></span></div>';
+ });
+ document.getElementById('detail').innerHTML=h;
+ document.getElementById('detail').style.display='block';
+}
+function exportCSV(){
+ var data=window._data||[];
+ if(!data.length)return alert('无数据');
+ var dims=['记忆方式','语法思维','阅读策略','完形填空','写作方法','学习信心','时间效率'];
+ var csv='时间,联系方式,总分,等级,'+dims.join(',')+'\n';
+ data.forEach(function(d){csv+=d.time+','+d.contact+','+d.score+','+d.grade+','+(d.dimScores||[]).join(',')+'\n';});
+ var blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
+ var url=URL.createObjectURL(blob);
+ var a=document.createElement('a');a.href=url;a.download='诊断数据_'+new Date().toISOString().slice(0,10)+'.csv';
+ document.body.appendChild(a);a.click();document.body.removeChild(a);
+}
+function clearData(){if(confirm('确定清空所有数据？此操作不可恢复！')){localStorage.removeItem(DATA_KEY);loadData();}}
+loadData();
+</script>
+</body>
+</html>
